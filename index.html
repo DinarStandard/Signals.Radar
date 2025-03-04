@@ -184,10 +184,8 @@
       white-space: nowrap;
       display: flex;
       justify-content: center;
-      /* For snap scrolling on small screens */
       scroll-snap-type: x mandatory;
       scroll-behavior: smooth;
-      /* Add left padding for the first node so it won't be cut off */
       scroll-padding-left: 1rem;
     }
     .timeline-bar {
@@ -476,6 +474,7 @@
       border-radius: 4px;
       padding: 1rem;
       margin-bottom: 1rem;
+      position: relative;
     }
     .section-header {
       font-size: 1.1rem;
@@ -483,6 +482,64 @@
       margin-bottom: 0.5rem;
       border-bottom: 1px solid rgba(255,255,255,0.3);
       padding-bottom: 0.25rem;
+    }
+    /* SIGNAL DEVELOPMENT SECTION (12 months) */
+    #devSection .dev-holo-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.8rem;
+      height: 1.8rem;
+      border-radius: 50%;
+      background: var(--primary-color);
+      color: #fff;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-left: 0.5rem;
+      border: 2px solid #fff;
+      box-shadow: 0 0 6px rgba(99, 179, 237, 0.7);
+      transition: box-shadow 0.3s;
+    }
+    #devSection .dev-holo-icon:hover {
+      box-shadow: 0 0 10px rgba(99, 179, 237, 0.9);
+    }
+    #devSection .dev-image {
+      max-width: 100%;
+      margin-top: 0.5rem;
+    }
+    /* Floating legend: positioned relative to the dev section */
+    #devSection .dev-holo-legend {
+      display: none;
+      position: absolute;
+      top: 2rem;
+      right: 1rem;
+      background: rgba(0, 0, 0, 0.9);
+      padding: 1rem;
+      border-radius: 8px;
+      width: 260px;
+      color: #f0f0f0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.8);
+      z-index: 10;
+    }
+    #devSection .dev-holo-legend h4 {
+      margin: 0.5rem 0 0.25rem;
+      color: var(--primary-color);
+    }
+    #devSection .dev-holo-legend ul {
+      list-style: disc;
+      margin-left: 1.5rem;
+    }
+    /* Detailed "Show More" styling */
+    .show-more-detailed {
+      color: var(--button-hover);
+      cursor: pointer;
+      text-decoration: underline;
+      display: inline-block;
+      margin-top: 0.5rem;
+    }
+    .expanded-section {
+      white-space: pre-wrap;
     }
     .btn-back {
       background: #333;
@@ -1114,7 +1171,6 @@
   <!-- QUICK VIEW CARD -->
   <div class="quick-view-card" id="quickViewCard">
     <button class="quickview-close" id="qvCloseBtn" aria-label="Close Card">×</button>
-
     <!-- Preview (Compact) -->
     <div class="preview-content">
       <img class="preview-img" id="previewImg" src="" alt="Preview Image" />
@@ -1136,7 +1192,6 @@
         <button class="btn-extended" id="expandBtn">Show More</button>
       </div>
     </div>
-
     <!-- Detailed (Expanded) -->
     <div class="detailed-content">
       <button class="btn-back" id="backBtn">
@@ -1162,14 +1217,40 @@
       <div class="section">
         <h3 class="section-header">Description</h3>
         <p id="cardDescription"></p>
+        <span class="show-more-detailed" id="cardDescriptionToggle" onclick="toggleDetailed('cardDescription')">Show More</span>
       </div>
       <div class="section">
         <h3 class="section-header">Reference / Story</h3>
         <p id="cardReference"></p>
       </div>
+      <!-- SIGNAL DEVELOPMENT SECTION (12 months) -->
       <div class="section" id="devSection">
-        <h3 class="section-header">Signal Development (12 months)</h3>
+        <h3 class="section-header">
+          Signal Development (12 months)
+          <span class="dev-holo-icon" id="devHoloIcon" title="View Methodology">!</span>
+        </h3>
         <p id="cardDevelopment"></p>
+        <!-- This image varies per signal via data-devimage -->
+        <img id="devImage" class="dev-image" src="image.png" alt="Dev Chart" />
+        <!-- Floating legend: toggled via the "!" icon -->
+        <div class="dev-holo-legend" id="devHoloLegend">
+          <h4>Overview:</h4>
+          <ul>
+            <li>Measures signal strength over time using data from various sources.</li>
+          </ul>
+          <h4>Methodology:</h4>
+          <ul>
+            <li>Keywords Mapping: Relevant keywords linked to signals.</li>
+            <li>Data Collection: Past year's news headlines from Google News.</li>
+            <li>Data Modeling: Cleaned, filtered, and aggregated data.</li>
+          </ul>
+          <h4>Legend:</h4>
+          <ul>
+            <li><span class="dev-legend-color" style="color: #8B0000;">Dark Red (250)</span>: Strong signal</li>
+            <li><span class="dev-legend-color" style="color: #FFD700;">Light Yellow (0)</span>: Weak signal</li>
+            <li>Intermediate values (50, 100, 150, 200) show varying strengths.</li>
+          </ul>
+        </div>
       </div>
       <div class="section">
         <h3 class="section-header">Dubai Context</h3>
@@ -1187,8 +1268,9 @@
             border-radius: 4px;
           "
         >
-          <ul id="cardPolicy"></ul>
+          <div id="cardPolicyContent"></div>
         </div>
+        <span class="show-more-detailed" id="cardPolicyToggle" onclick="toggleDetailed('cardPolicyContent')">Show More</span>
       </div>
       <div class="section">
         <h3 class="section-header">Sources</h3>
@@ -1272,7 +1354,6 @@
         e.stopPropagation();
         // Scroll the clicked node into center view
         node.scrollIntoView({ behavior: "smooth", inline: "center" });
-
         // Fade effect for week transition
         radarContainer.classList.add('week-transition');
         setTimeout(() => {
@@ -1428,6 +1509,25 @@
       });
     }
 
+    // Toggle detailed section text (for Description & Policy)
+    function toggleDetailed(sectionId) {
+      const sectionElem = document.getElementById(sectionId);
+      const toggleLink = document.getElementById(sectionId === 'cardDescription' ? 'cardDescriptionToggle' : 'cardPolicyToggle');
+      if (sectionElem.classList.contains('expanded-section')) {
+        // Collapse: show truncated text
+        const fullText = sectionElem.dataset.fullText || "";
+        sectionElem.textContent = fullText.slice(0,120) + (fullText.length > 120 ? "..." : "");
+        sectionElem.classList.remove('expanded-section');
+        toggleLink.textContent = "Show More";
+      } else {
+        // Expand: show full text
+        sectionElem.textContent = sectionElem.dataset.fullText || "";
+        sectionElem.classList.add('expanded-section');
+        toggleLink.textContent = "Show Less";
+      }
+    }
+
+    // Populate Quick View Card
     function populateQuickView(data) {
       document.getElementById('qvTitle').textContent = data.title || 'QuickView Title';
       document.getElementById('previewStrength').textContent = data.strength || 'N/A';
@@ -1445,23 +1545,37 @@
       document.getElementById('cardImpact').textContent = data.impact || 'N/A';
       document.getElementById('cardImage').src = data.image || '';
       document.getElementById('cardImageCredit').textContent = data.imagecredit || '';
-      document.getElementById('cardDescription').textContent = data.description || '';
+
+      // For Description: store full text and set truncated text
+      const cardDescElem = document.getElementById('cardDescription');
+      cardDescElem.dataset.fullText = data.description || '';
+      if ((data.description || '').length > 120) {
+        cardDescElem.textContent = (data.description || '').slice(0,120) + "...";
+        document.getElementById('cardDescriptionToggle').style.display = 'inline';
+      } else {
+        cardDescElem.textContent = data.description || '';
+        document.getElementById('cardDescriptionToggle').style.display = 'none';
+      }
+
       document.getElementById('cardReference').textContent = data.reference || '';
+
+      // Populate the Signal Development section text
       document.getElementById('cardDevelopment').textContent = data.dev || '';
+      // Set the development image if provided (data-devimage)
+      document.getElementById('devImage').src = data.devimage || 'image.png';
+
       document.getElementById('cardDubai').textContent = data.dubai || '';
       document.getElementById('cardSources').textContent = data.sources || '';
 
-      const policyUl = document.getElementById('cardPolicy');
-      policyUl.innerHTML = '';
-      if (data.policy) {
-        data.policy.split('\n').forEach(line => {
-          const trimmed = line.trim();
-          if (trimmed) {
-            const li = document.createElement('li');
-            li.textContent = trimmed;
-            policyUl.appendChild(li);
-          }
-        });
+      // For Policy: store full text and set truncated text
+      const cardPolicyElem = document.getElementById('cardPolicyContent');
+      cardPolicyElem.dataset.fullText = data.policy || '';
+      if ((data.policy || '').length > 120) {
+        cardPolicyElem.textContent = (data.policy || '').slice(0,120) + "...";
+        document.getElementById('cardPolicyToggle').style.display = 'inline';
+      } else {
+        cardPolicyElem.textContent = data.policy || '';
+        document.getElementById('cardPolicyToggle').style.display = 'none';
       }
     }
 
@@ -1486,6 +1600,21 @@
     });
 
     /******************************************************
+     * DEV HOLO LEGEND TOGGLE
+     ******************************************************/
+    const devHoloIcon = document.getElementById('devHoloIcon');
+    const devHoloLegend = document.getElementById('devHoloLegend');
+    // Toggle the legend on click. It will remain visible until clicking outside or toggling again.
+    devHoloIcon.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (devHoloLegend.style.display === 'block') {
+        devHoloLegend.style.display = 'none';
+      } else {
+        devHoloLegend.style.display = 'block';
+      }
+    });
+
+    /******************************************************
      * GLOBAL CLICK => close overlays
      ******************************************************/
     document.addEventListener('click', (e) => {
@@ -1496,6 +1625,10 @@
       // Close legend if click outside
       if (!legendIcon.contains(e.target) && !legendPanel.contains(e.target)) {
         legendPanel.classList.remove('show');
+      }
+      // Close the development legend if click outside
+      if (!devHoloIcon.contains(e.target) && !devHoloLegend.contains(e.target)) {
+        devHoloLegend.style.display = 'none';
       }
       // Close any sub-bubble-lists if click outside
       document.querySelectorAll('.sub-bubble-list').forEach(list => {
