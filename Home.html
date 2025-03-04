@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Signals.Radar</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Favicon using Mosaic logo -->
+  <link
+    rel="icon"
+    href="https://mosaiclive.com/wp-content/uploads/42-ml__0017_Vector-Smart-Object.png"
+    type="image/png"
+  />
+  <!-- Google Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+  <!-- Bootstrap 5 CSS via CDN -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-ENjdO4Dr2bkBIFxQvdQaC5Z6mCqMtGZYc9C+EHknIr9zmC9F3RjlKcPR1hAXszv/"
+    crossorigin="anonymous"
+  />
+  <style>
+    /* ================================================
+       1) GLOBAL RESET & ROOT VARIABLES
+    ================================================ */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    :root {
+      font-size: 16px;
+      --bg-start: #1a1a1a;
+      --bg-end: #2c2c2c;
+      --text-color: #f0f0f0;
+
+      /* Default/fallback color if category isn't found */
+      --primary-color: #63b3ed;
+
+      /* Category main colors (for signals) */
+      --color-digital-health: #4477aa;
+      --color-smart-cities:  #aa7744;
+      --color-public-health:  #44aa77;
+      --color-economic-dev:  #aa4477;
+      --color-other:         #7744aa;
+      /* A color for placeholder/dummy signals */
+      --color-placeholder:   #666;
+
+      /* Category gradient for filter bubbles */
+      --grad-digital-health: linear-gradient(45deg, #6699cc, #4477aa);
+      --grad-smart-cities:   linear-gradient(45deg, #cc9966, #aa7744);
+      --grad-public-health:  linear-gradient(45deg, #66cc99, #44aa77);
+      --grad-economic-dev:   linear-gradient(45deg, #cc6699, #aa4477);
+      --grad-other:          linear-gradient(45deg, #9966cc, #7744aa);
+
+      --button-hover: #4fd1c5;
+      --border-color: #444;
+      --font-family: 'Roboto', sans-serif;
+    }
+
+    /* ================================================
+       2) GLOBAL STYLES
+    ================================================ */
+    body {
+      font-family: var(--font-family);
+      background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+      color: var(--text-color);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+    :focus {
+      outline: 2px dashed #fff;
+      outline-offset: 4px;
+    }
+
+    /* ================================================
+       3) HEADER & NAVIGATION
+    ================================================ */
+    header {
+      width: 100%;
+      background: #111;
+      padding: 1rem 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      position: relative;
+      z-index: 1002;
+    }
+    .nav-container {
+      width: 90%;
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      margin-bottom: 0.5rem;
+    }
+    .categories {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .category-wrapper {
+      position: relative;
+    }
+    .category-bubble {
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.95rem;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.3s, transform 0.2s;
+      background: var(--primary-color);
+    }
+    .category-bubble:hover {
+      transform: translateY(-2px);
+      opacity: 0.85;
+    }
+    .category-bubble.active {
+      transform: translateY(-2px);
+      border: 2px solid #fff;
+      opacity: 1;
+    }
+    .sub-bubble-list {
+      position: absolute;
+      top: 110%;
+      left: 0;
+      background: #222;
+      border-radius: 0.5rem;
+      padding: 0.5rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s;
+      z-index: 10;
+    }
+    .category-wrapper:hover .sub-bubble-list {
+      opacity: 1;
+      visibility: visible;
+    }
+    .sub-bubble {
+      display: block;
+      background: transparent;
+      border: none;
+      color: #fff;
+      padding: 0.5rem 1rem;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .sub-bubble:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .sub-bubble-list::before {
+      content: "";
+      position: absolute;
+      top: -10px;
+      left: 15px;
+      width: 0;
+      height: 0;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-bottom: 10px solid #222;
+    }
+
+    /* ================================================
+       3.5) TIMELINE BAR (CIRCULAR NODES)
+    ================================================ */
+    .timeline-container {
+      width: 100%;
+      background: #111;
+      padding: 0.5rem 0;
+      overflow-x: auto;
+      white-space: nowrap;
+      display: flex;
+      justify-content: center;
+      /* For snap scrolling on small screens */
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      /* Add left padding for the first node so it won't be cut off */
+      scroll-padding-left: 1rem;
+    }
+    .timeline-bar {
+      display: inline-flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .timeline-node {
+      position: relative;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      transition: transform 0.3s;
+      scroll-snap-align: center;
+    }
+    .timeline-node .week-circle {
+      width: 2.5rem;
+      height: 2.5rem;
+      background: linear-gradient(45deg, #333, #555);
+      border-radius: 50%;
+      border: 2px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 0.9rem;
+      margin-bottom: 0.25rem;
+      transition: background 0.3s, transform 0.3s;
+    }
+    .timeline-node:hover .week-circle {
+      background: var(--button-hover);
+    }
+    .timeline-node.current-week .week-circle {
+      background: var(--primary-color);
+      border: 2px solid #fff;
+      transform: scale(1.1);
+    }
+    .timeline-node.dummy .week-circle {
+      background: #777;
+    }
+    .week-label {
+      color: #ccc;
+      font-size: 0.85rem;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .timeline-line {
+      width: 2rem;
+      height: 2px;
+      background: #555;
+      flex-shrink: 0;
+    }
+
+    /* ================================================
+       4) RADAR CONTAINER & SIGNALS
+    ================================================ */
+    .radar-container {
+      position: relative;
+      width: 90%;
+      max-width: 1200px;
+      margin: 1rem auto;
+      min-height: 600px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      overflow: hidden;
+      z-index: 1;
+      transition: opacity 0.4s ease;
+    }
+    @keyframes fadeOutIn {
+      0% { opacity: 1; }
+      50% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+    .week-transition {
+      animation: fadeOutIn 0.6s;
+    }
+
+    /* Meteor-Shower Particles */
+    .particles {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.7;
+    }
+    .particle {
+      position: absolute;
+      width: 2px;
+      height: 14px;
+      background: rgba(255,255,255,0.25);
+      border-radius: 0.5rem;
+      transform: rotateZ(-45deg);
+      animation: meteor 2.5s linear infinite;
+    }
+    @keyframes meteor {
+      0% { opacity: 0; transform: translate(-100px, 0) rotateZ(-45deg); }
+      5% { opacity: 1; }
+      95% { opacity: 1; }
+      100% { opacity: 0; transform: translate(300px,300px) rotateZ(-45deg); }
+    }
+    .curved-lines {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 550px;
+      z-index: 1;
+    }
+    .curved-lines path {
+      fill: none;
+      stroke: var(--primary-color);
+      stroke-dasharray: 4, 4;
+      stroke-width: 2;
+      opacity: 0.5;
+    }
+    .curved-lines text {
+      fill: var(--text-color);
+      font-size: 16px;
+      font-family: var(--font-family);
+    }
+    .signal {
+      position: absolute;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      z-index: 2;
+      transition: transform 0.2s, opacity 0.5s;
+      animation: pulse 2s infinite alternate;
+    }
+    .signal:hover {
+      transform: scale(1.12);
+      box-shadow: 0 0 16px rgba(255,255,255,0.4);
+    }
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 4px rgba(255,255,255,0.15); }
+      50%  { box-shadow: 0 0 16px rgba(255,255,255,0.3); }
+      100% { box-shadow: 0 0 4px rgba(255,255,255,0.15); }
+    }
+
+    /* ================================================
+       5) QUICK VIEW / DETAILED CARD (Modal)
+    ================================================ */
+    .quick-view-card {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #222;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      padding: 1.5rem;
+      width: 90%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      z-index: 1003;
+      display: none;
+      color: #fff;
+    }
+    .quickview-close {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: transparent;
+      border: none;
+      font-size: 1.5rem;
+      color: #fff;
+      cursor: pointer;
+    }
+    .preview-content {
+      display: flex;
+      gap: 1rem;
+    }
+    .preview-img {
+      flex: 0 0 20%;
+      max-width: 20%;
+      border-radius: 0.25rem;
+      object-fit: cover;
+      background: #333;
+    }
+    .preview-text {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .preview-text .title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+      color: #fff;
+    }
+    .preview-label {
+      color: #68d391; /* Green color for "Strength" / "Impact" */
+      font-weight: 600;
+      margin-right: 0.25rem;
+    }
+    .desc {
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      line-height: 1.4;
+    }
+    .btn-extended {
+      font-size: 1rem;
+      padding: 0.75rem 1.25rem;
+      background: #68d391;
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .btn-extended:hover {
+      background: var(--button-hover);
+    }
+    .quick-view-card.expanded .preview-content {
+      display: none;
+    }
+    .detailed-content {
+      display: none;
+    }
+    .quick-view-card.expanded .detailed-content {
+      display: block;
+    }
+    .card-top-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+    .metrics-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      flex: 1 1 auto;
+      min-width: 250px;
+    }
+    .metric-box {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: linear-gradient(45deg, rgba(255,255,255,0.05), rgba(255,255,255,0.1));
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      margin: 0.5rem 0;
+    }
+    .metric-title {
+      font-size: 1rem;
+      margin-bottom: 0.25rem;
+      font-weight: 700;
+      color: #68d391;
+    }
+    .metric-value {
+      font-weight: 600;
+      font-size: 1.2rem;
+      line-height: 1.4;
+    }
+    .card-image-wrapper {
+      flex: 1 1 auto;
+      min-width: 200px;
+      text-align: center;
+    }
+    .card-image-wrapper img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 0.5rem;
+    }
+    .card-image-wrapper .image-credit {
+      font-size: 0.8rem;
+      color: #aaa;
+    }
+    .section {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 4px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .section-header {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.3);
+      padding-bottom: 0.25rem;
+    }
+    .btn-back {
+      background: #333;
+      color: #fff;
+      border: 1px solid #555;
+      margin-bottom: 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .arrow-icon {
+      font-size: 1.2rem;
+    }
+
+    @media (max-width: 768px) {
+      .card-top-row {
+        flex-direction: column;
+      }
+      .preview-content {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .preview-img {
+        max-width: 100%;
+        margin-bottom: 0.5rem;
+      }
+    }
+
+    /* ================================================
+       6) FOOTER & LOGO
+    ================================================ */
+    footer {
+      margin-top: auto;
+      background: #111;
+      padding: 2rem 1rem;
+      z-index: 1002;
+    }
+    .footer-content {
+      width: 90%;
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer-logo img {
+      max-height: 100px;
+      width: auto;
+      height: auto;
+    }
+    .footer-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+
+    /* ================================================
+       7) LEGEND
+    ================================================ */
+    .legend-icon {
+      position: absolute;
+      bottom: 1rem;
+      right: 1rem;
+      width: 2.2rem;
+      height: 2.2rem;
+      border-radius: 50%;
+      border: 2px solid var(--primary-color);
+      color: var(--primary-color);
+      background: transparent;
+      cursor: pointer;
+      text-align: center;
+      line-height: 2rem;
+      font-size: 1.2rem;
+      transition: background 0.3s, color 0.3s;
+      z-index: 9999;
+    }
+    .legend-icon:hover {
+      background: var(--primary-color);
+      color: #111;
+    }
+    .legend-panel {
+      position: absolute;
+      bottom: 5rem;
+      right: 1rem;
+      background: #222;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      width: 240px;
+      display: none;
+      z-index: 9999;
+    }
+    .legend-panel.show {
+      display: block;
+    }
+    .legend-panel h3 {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      color: var(--primary-color);
+    }
+    .legend-panel h4 {
+      font-size: 0.95rem;
+      margin: 0.75rem 0 0.25rem;
+      color: #68d391;
+    }
+    .impact-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.4rem;
+    }
+    .impact-ball {
+      border-radius: 50%;
+      background: var(--primary-color);
+      display: inline-block;
+    }
+    .impact-ball.low {
+      width: 1.5rem;
+      height: 1.5rem;
+    }
+    .impact-ball.med {
+      width: 2.2rem;
+      height: 2.2rem;
+    }
+    .impact-ball.high {
+      width: 2.9rem;
+      height: 2.9rem;
+    }
+    .legend-panel p {
+      font-size: 0.9rem;
+      line-height: 1.4;
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- HEADER -->
+  <header>
+    <div class="nav-container">
+      <div class="logo">Signal.Radar</div>
+      <div class="categories" id="categoryContainer">
+        <!-- Category Bubbles -->
+        <div class="category-wrapper">
+          <button class="category-bubble" data-category="All">All</button>
+        </div>
+        <div class="category-wrapper">
+          <button class="category-bubble" data-category="Digital Health">Digital Health</button>
+          <div class="sub-bubble-list">
+            <button class="sub-bubble" data-subcategory="Obesity">Obesity</button>
+            <button class="sub-bubble" data-subcategory="Food Env">Food Env</button>
+            <button class="sub-bubble" data-subcategory="Prescribing">Prescribing</button>
+            <button class="sub-bubble" data-subcategory="Isolation">Isolation</button>
+            <button class="sub-bubble" data-subcategory="Alcohol">Alcohol</button>
+            <button class="sub-bubble" data-subcategory="Digital Tools">Digital Tools</button>
+          </div>
+        </div>
+        <div class="category-wrapper">
+          <button class="category-bubble" data-category="Smart Cities">Smart Cities</button>
+          <div class="sub-bubble-list">
+            <button class="sub-bubble" data-subcategory="Mobility">Mobility</button>
+            <button class="sub-bubble" data-subcategory="Pedestrian">Pedestrian</button>
+            <button class="sub-bubble" data-subcategory="Green">Green</button>
+            <button class="sub-bubble" data-subcategory="Urban Agriculture">Urban Agriculture</button>
+          </div>
+        </div>
+        <div class="category-wrapper">
+          <button class="category-bubble" data-category="Economic Development">Econ Dev</button>
+          <div class="sub-bubble-list">
+            <button class="sub-bubble" data-subcategory="Workweek">Workweek</button>
+            <button class="sub-bubble" data-subcategory="Food Waste">Food Waste</button>
+          </div>
+        </div>
+        <div class="category-wrapper">
+          <button class="category-bubble" data-category="Public Health">Public Health</button>
+          <div class="sub-bubble-list">
+            <button class="sub-bubble" data-subcategory="Food Environment">Food Environment</button>
+            <button class="sub-bubble" data-subcategory="Food Waste">Food Waste</button>
+            <button class="sub-bubble" data-subcategory="Tobacco Control">Tobacco Control</button>
+            <button class="sub-bubble" data-subcategory="Alcohol">Alcohol</button>
+            <button class="sub-bubble" data-subcategory="Childhood Obesity">Childhood Obesity</button>
+            <button class="sub-bubble" data-subcategory="Social Isolation">Social Isolation</button>
+          </div>
+        </div>
+        <div class="category-wrapper">
+          <button class="category-bubble" data-category="Other">Other</button>
+          <div class="sub-bubble-list">
+            <button class="sub-bubble" data-subcategory="Tobacco">Tobacco</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- TIMELINE (CIRCULAR NODES) -->
+  <div class="timeline-container">
+    <div class="timeline-bar">
+      <!-- Node for 1-7 March (current) -->
+      <div class="timeline-node current-week" data-week="1-7 March">
+        <div class="week-circle">1</div>
+        <div class="week-label">1–7 Mar</div>
+      </div>
+      <div class="timeline-line"></div>
+      <!-- Node for 8-14 March (dummy) -->
+      <div class="timeline-node dummy" data-week="8-14 March">
+        <div class="week-circle">2</div>
+        <div class="week-label">8–14 Mar</div>
+      </div>
+      <div class="timeline-line"></div>
+      <!-- Node for 15-21 March (dummy) -->
+      <div class="timeline-node dummy" data-week="15-21 March">
+        <div class="week-circle">3</div>
+        <div class="week-label">15–21 Mar</div>
+      </div>
+      <div class="timeline-line"></div>
+      <!-- Node for 22-28 March (dummy) -->
+      <div class="timeline-node dummy" data-week="22-28 March">
+        <div class="week-circle">4</div>
+        <div class="week-label">22–28 Mar</div>
+      </div>
+      <div class="timeline-line"></div>
+      <!-- Node for 29 Mar–4 Apr (dummy) -->
+      <div class="timeline-node dummy" data-week="29 Mar–4 Apr">
+        <div class="week-circle">5</div>
+        <div class="week-label">29 Mar–4 Apr</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RADAR CONTAINER -->
+  <div class="radar-container" id="radarContainer">
+    <!-- Meteor Shower -->
+    <div class="particles">
+      <div class="particle" style="top: 5%; left: 10%; animation-delay: 0.2s;"></div>
+      <div class="particle" style="top: 15%; left: 40%; animation-delay: 1s;"></div>
+      <div class="particle" style="top: 25%; left: 70%; animation-delay: 0.5s;"></div>
+      <div class="particle" style="top: 35%; left: 20%; animation-delay: 1.3s;"></div>
+      <div class="particle" style="top: 45%; left: 50%; animation-delay: 2s;"></div>
+      <div class="particle" style="top: 55%; left: 80%; animation-delay: 0.8s;"></div>
+      <div class="particle" style="top: 65%; left: 30%; animation-delay: 1.6s;"></div>
+      <div class="particle" style="top: 75%; left: 60%; animation-delay: 0.9s;"></div>
+      <div class="particle" style="top: 85%; left: 10%; animation-delay: 1.9s;"></div>
+    </div>
+
+    <!-- Horizontal Arcs -->
+    <svg class="curved-lines" viewBox="0 0 1000 550" preserveAspectRatio="none">
+      <path d="M 0,50 Q 500,-50 1000,50" />
+      <text x="20" y="40">Weak</text>
+      <path d="M 0,275 Q 500,175 1000,275" />
+      <text x="20" y="260">Medium</text>
+      <path d="M 0,500 Q 500,400 1000,500" />
+      <text x="20" y="510">Strong</text>
+    </svg>
+
+    <!-- 13 Signals => 1-7 March -->
+    <!-- 1) Digital Health Tools (Weak) -->
+    <div
+      class="signal"
+      style="top: 10%; left: 15%;"
+      data-week="1-7 March"
+      data-category="Digital Health"
+      data-subcategory="Digital Tools"
+      data-title="Digital Health Tools Prescription"
+      data-strength="Weak"
+      data-impact="Medium"
+      data-description="Prescription-based digital health tools enable patients to manage chronic conditions through remote monitoring and digital coaching. They foster better self-care and help optimize healthcare resources."
+      data-reference="N/A"
+      data-dev=""
+      data-dubai="Dubai’s telehealth initiatives integrate digital tools for continuous care."
+      data-image="https://placehold.co/400x250?text=Digital+Health+Tools"
+      data-image-size="400x250"
+      data-imagecredit="Placeholder.com"
+      data-sources="N/A"
+      data-policy="Integrate vetted digital tools into public health programs..."
+    ></div>
+    <!-- 2) Alcohol Harm (Weak) -->
+    <div
+      class="signal"
+      style="top: 12%; left: 35%;"
+      data-week="1-7 March"
+      data-category="Public Health"
+      data-subcategory="Alcohol"
+      data-title="Alcohol Harm Reduction Initiatives"
+      data-strength="Weak"
+      data-impact="Medium"
+      data-description="Interventions focus on reducing alcohol-related harm by regulating outlet hours, responsible serving practices, and promoting alcohol-free environments."
+      data-reference="who.int"
+      data-dev=""
+      data-dubai="Dubai strictly regulates alcohol sales..."
+      data-image="https://www.freemalaysiatoday.com/_next/image/?url=https%3A%2F%2Fmedia.freemalaysiatoday.com%2Fwp-content%2Fuploads%2F2016%2F03%2Fdrinking.jpg&w=1920&q=75"
+      data-image-size="400x250"
+      data-imagecredit="Free Malaysia Today"
+      data-sources="caterermiddleeast.com"
+      data-policy="Maintain strict alcohol regulations; train hospitality staff..."
+    ></div>
+    <!-- 3) Reducing Food Waste (Weak to Moderate) -->
+    <div
+      class="signal"
+      style="top: 14%; left: 55%;"
+      data-week="1-7 March"
+      data-category="Public Health"
+      data-subcategory="Food Waste"
+      data-title="Reducing Food Waste for Healthy Meals"
+      data-strength="Weak to Moderate"
+      data-impact="Medium"
+      data-description="Programs repurpose edible food waste into nutritious meals, addressing both environmental waste and food insecurity."
+      data-reference="who.int"
+      data-dev=""
+      data-dubai="Dubai’s Food Bank collects surplus food from businesses..."
+      data-image="https://tableo.com/wp-content/uploads/2023/07/Restaurant-Food-Waste-1024x683.webp"
+      data-image-size="400x250"
+      data-imagecredit="Tableo"
+      data-sources="wasterecyclingmag.com"
+      data-policy="Provide tax incentives for food donations; establish cold storage hubs..."
+    ></div>
+    <!-- 4) Pedestrian-Friendly (Moderate) -->
+    <div
+      class="signal"
+      style="top: 30%; left: 10%;"
+      data-week="1-7 March"
+      data-category="Smart Cities"
+      data-subcategory="Pedestrian"
+      data-title="Pedestrian-Friendly Urban Spaces"
+      data-strength="Moderate"
+      data-impact="High"
+      data-description="Cities are reclaiming streets for people through car-free zones, open streets events, and parklets."
+      data-reference="who.int"
+      data-dev=""
+      data-dubai="Dubai has improved pedestrian infrastructure with dedicated promenades..."
+      data-image="https://placehold.co/400x250?text=Pedestrian+Spaces"
+      data-image-size="400x250"
+      data-imagecredit="Placeholder.com"
+      data-sources="who.int"
+      data-policy="Promote 15-minute neighborhoods; incentivize car-free days..."
+    ></div>
+    <!-- 5) Healthy Food Environments (Moderate) -->
+    <div
+      class="signal"
+      style="top: 34%; left: 30%;"
+      data-week="1-7 March"
+      data-category="Public Health"
+      data-subcategory="Food Environment"
+      data-title="Healthy Food Environments"
+      data-strength="Moderate"
+      data-impact="High"
+      data-description="Interventions improve healthy eating by regulating junk-food advertising and mandating nutrition labeling."
+      data-reference="evidence.nihr.ac.uk"
+      data-dev=""
+      data-dubai="Dubai has introduced a sugar tax, enforced school canteen guidelines..."
+      data-image="https://images.pexels.com/photos/1640775/pexels-photo-1640775.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
+      data-image-size="400x250"
+      data-imagecredit="Pexels"
+      data-sources="evidence.nihr.ac.uk"
+      data-policy="Enforce stricter food advertising rules; support urban farming initiatives."
+    ></div>
+    <!-- 6) Community Urban Farming (Moderate) -->
+    <div
+      class="signal"
+      style="top: 38%; left: 50%;"
+      data-week="1-7 March"
+      data-category="Smart Cities"
+      data-subcategory="Urban Agriculture"
+      data-title="Community Urban Farming & Gardens"
+      data-strength="Moderate"
+      data-impact="Medium"
+      data-description="Urban farming initiatives empower residents to cultivate food in community gardens, rooftop farms, and allotments."
+      data-reference="childinthecity.org"
+      data-dev=""
+      data-dubai="Dubai promotes urban farming via vertical farms..."
+      data-image="https://placehold.co/400x250?text=Urban+Farming"
+      data-image-size="400x250"
+      data-imagecredit="Placeholder.com"
+      data-sources="childinthecity.org"
+      data-policy="Integrate urban farming into new developments; link community gardens with local food security programs."
+    ></div>
+    <!-- 7) Tobacco-Free (Moderate) -->
+    <div
+      class="signal"
+      style="top: 42%; left: 70%;"
+      data-week="1-7 March"
+      data-category="Public Health"
+      data-subcategory="Tobacco Control"
+      data-title="Tobacco-Free Environments & Control Initiatives"
+      data-strength="Moderate"
+      data-impact="High"
+      data-description="Strict tobacco control measures—including smoke-free zones and high taxation—have reduced smoking prevalence."
+      data-reference="aa.com.tr"
+      data-dev=""
+      data-dubai="Dubai enforces robust indoor smoking bans and high excise taxes..."
+      data-image="https://placehold.co/400x250?text=Tobacco+Control"
+      data-image-size="400x250"
+      data-imagecredit="Placeholder.com"
+      data-sources="en.wikipedia.org"
+      data-policy="Extend smoke-free zones; integrate cessation support in healthcare."
+    ></div>
+    <!-- 8) Childhood Obesity (Moderate) -->
+    <div
+      class="signal"
+      style="top: 46%; left: 15%;"
+      data-week="1-7 March"
+      data-category="Public Health"
+      data-subcategory="Childhood Obesity"
+      data-title="Comprehensive Childhood Obesity Programs"
+      data-strength="Moderate"
+      data-impact="High"
+      data-description="Integrated interventions spanning schools, communities, and healthcare settings aim to reduce childhood obesity."
+      data-reference="obesityactionscotland.org"
+      data-dev=""
+      data-dubai="Dubai has launched initiatives like school meal reforms and fitness challenges..."
+      data-image="https://placehold.co/400x250?text=Childhood+Obesity+Programs"
+      data-image-size="400x250"
+      data-imagecredit="Placeholder.com"
+      data-sources="obesityactionscotland.org"
+      data-policy="Establish a multi-agency task force; enforce healthy food standards in schools."
+    ></div>
+    <!-- 9) Social Prescribing (Moderate) -->
+    <div
+      class="signal"
+      style="top: 50%; left: 35%;"
+      data-week="1-7 March"
+      data-category="Digital Health"
+      data-subcategory="Social Prescribing"
+      data-title="Social Prescribing & Community Health Referrals"
+      data-strength="Moderate"
+      data-impact="Medium"
+      data-description="Healthcare-driven interventions connect individuals to community resources—such as exercise groups and art classes—to address social determinants of health."
+      data-reference="socialprescribingacademy.org.uk"
+      data-dev=""
+      data-dubai="Dubai’s wellness centers and community support programs hint at a future formal social prescribing framework."
+      data-image="https://placehold.co/400x250?text=Social+Prescribing"
+      data-image-size="400x250"
+      data-imagecredit="Placeholder.com"
+      data-sources="england.nhs.uk"
+      data-policy="Pilot a formal social prescribing framework; train link workers..."
+    ></div>
+    <!-- 10) Social Isolation (Moderate) -->
+    <div
+      class="signal"
+      style="top: 54%; left: 55%;"
+      data-week="1-7 March"
+      data-category="Public Health"
+      data-subcategory="Social Isolation"
+      data-title="Combating Social Isolation & Loneliness"
+      data-strength="Moderate"
+      data-impact="High"
+      data-description="Initiatives that reduce social isolation—through community centers and intergenerational activities—improve mental health."
+      data-reference="theworld.org"
+      data-dev=""
+      data-dubai="Dubai supports various community initiatives targeting isolation..."
+      data-image="https://images.pexels.com/photos/7929443/pexels-photo-7929443.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
+      data-image-size="400x250"
+      data-imagecredit="Pexels"
+      data-sources="theworld.org"
+      data-policy="Integrate social connectivity in well-being metrics; expand community centers..."
+    ></div>
+    <!-- 11) Active Mobility (Strong) -->
+    <div
+      class="signal"
+      style="top: 70%; left: 15%;"
+      data-week="1-7 March"
+      data-category="Smart Cities"
+      data-subcategory="Mobility"
+      data-title="Active Mobility Infrastructure (Cycling & Walking)"
+      data-strength="Strong"
+      data-impact="High"
+      data-description="Cities are redesigning streets to favor cyclists and walkers, with bold investments like Paris’s 166% cycling surge."
+      data-reference="ecf.com"
+      data-dev=""
+      data-dubai="Dubai is expanding cycling tracks to 739 km by 2026..."
+      data-image="https://placehold.co/400x250?text=Active+Mobility"
+      data-image-size="400x250"
+      data-imagecredit="Placeholder.com"
+      data-sources="ecf.com"
+      data-policy="Integrate active mobility into urban planning; incentivize public bike-share programs..."
+    ></div>
+    <!-- 12) Urban Green & Blue Spaces (Strong) -->
+    <div
+      class="signal"
+      style="top: 70%; left: 40%;"
+      data-week="1-7 March"
+      data-category="Smart Cities"
+      data-subcategory="Green"
+      data-title="Urban Green & Blue Spaces for Wellness"
+      data-strength="Strong"
+      data-impact="High"
+      data-description="Cities are expanding parks, urban forests, and waterfront access to enhance mental and physical health."
+      data-reference="childinthecity.org"
+      data-dev=""
+      data-dubai="Dubai’s 2040 Master Plan aims to double green areas..."
+      data-image="https://c.pxhere.com/photos/46/dc/lake_balaton_tihany_hungary_water_lake_clouds_tihany_peninsula_park-1325571.jpg!d"
+      data-image-size="400x250"
+      data-imagecredit="PXHere"
+      data-sources="childinthecity.org"
+      data-policy="Implement green building regulations; integrate nature-based solutions into urban planning."
+    ></div>
+    <!-- 13) De-work (Strong) -->
+    <div
+      class="signal"
+      style="top: 70%; left: 65%;"
+      data-week="1-7 March"
+      data-category="Economic Development"
+      data-subcategory="Workweek"
+      data-title="De-work (Flexible & Shorter Workweeks)"
+      data-strength="Strong"
+      data-impact="Medium"
+      data-description="Flexible and shorter workweeks improve work-life balance, reduce stress, and maintain productivity."
+      data-reference="N/A"
+      data-dev=""
+      data-dubai="Dubai adopted a 4.5-day workweek in 2022..."
+      data-image="https://c.pxhere.com/images/9a/b7/22b73767b98e5a150c94b9b85350-1458637.jpg!d"
+      data-image-size="400x250"
+      data-imagecredit="PXHere"
+      data-sources="N/A"
+      data-policy="Promote flexible work policies; monitor impacts on productivity."
+    ></div>
+
+    <!-- Example DUMMY signals for future weeks -->
+    <!-- 8-14 March -->
+    <div
+      class="signal"
+      style="top: 20%; left: 20%;"
+      data-week="8-14 March"
+      data-category="Placeholder"
+      data-subcategory="Dummy"
+      data-title="Placeholder Signal"
+      data-strength="N/A"
+      data-impact="Low"
+      data-description="Gray placeholder for future data."
+    ></div>
+    <div
+      class="signal"
+      style="top: 40%; left: 50%;"
+      data-week="8-14 March"
+      data-category="Placeholder"
+      data-subcategory="Dummy"
+      data-title="Placeholder Signal"
+      data-strength="N/A"
+      data-impact="Low"
+      data-description="Gray placeholder for future data."
+    ></div>
+    <!-- 15-21 March -->
+    <div
+      class="signal"
+      style="top: 25%; left: 40%;"
+      data-week="15-21 March"
+      data-category="Placeholder"
+      data-subcategory="Dummy"
+      data-title="Placeholder Signal"
+      data-strength="N/A"
+      data-impact="Low"
+      data-description="Gray placeholder for future data."
+    ></div>
+    <div
+      class="signal"
+      style="top: 45%; left: 60%;"
+      data-week="15-21 March"
+      data-category="Placeholder"
+      data-subcategory="Dummy"
+      data-title="Placeholder Signal"
+      data-strength="N/A"
+      data-impact="Low"
+      data-description="Gray placeholder for future data."
+    ></div>
+    <!-- 22-28 March -->
+    <div
+      class="signal"
+      style="top: 20%; left: 60%;"
+      data-week="22-28 March"
+      data-category="Placeholder"
+      data-subcategory="Dummy"
+      data-title="Placeholder Signal"
+      data-strength="N/A"
+      data-impact="Low"
+      data-description="Gray placeholder for future data."
+    ></div>
+    <!-- 29 Mar–4 Apr -->
+    <div
+      class="signal"
+      style="top: 30%; left: 70%;"
+      data-week="29 Mar–4 Apr"
+      data-category="Placeholder"
+      data-subcategory="Dummy"
+      data-title="Placeholder Signal"
+      data-strength="N/A"
+      data-impact="Low"
+      data-description="Gray placeholder for future data."
+    ></div>
+
+    <!-- LEGEND -->
+    <div class="legend-icon" id="legendIcon" title="Show Legend">?</div>
+    <div class="legend-panel" id="legendPanel">
+      <h3>Legend</h3>
+      <p>All signals share one color by default. Each category has its own color.</p>
+      <h4>Based on Impact:</h4>
+      <div class="impact-row">
+        <div class="impact-ball low"></div>
+        <span>Low</span>
+      </div>
+      <div class="impact-row">
+        <div class="impact-ball med"></div>
+        <span>Medium</span>
+      </div>
+      <div class="impact-row">
+        <div class="impact-ball high"></div>
+        <span>High</span>
+      </div>
+      <h4>Signal Strength &amp; Maturity:</h4>
+      <p>
+        Weaker signals near the top<br>
+        Medium signals in the middle<br>
+        Strong signals near the bottom
+      </p>
+    </div>
+  </div>
+
+  <!-- TOOLTIP -->
+  <div id="tooltip" style="
+    position: fixed;
+    background: rgba(0,0,0,0.7);
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    pointer-events: none;
+    display: none;">
+  </div>
+
+  <!-- QUICK VIEW CARD -->
+  <div class="quick-view-card" id="quickViewCard">
+    <button class="quickview-close" id="qvCloseBtn" aria-label="Close Card">×</button>
+
+    <!-- Preview (Compact) -->
+    <div class="preview-content">
+      <img class="preview-img" id="previewImg" src="" alt="Preview Image" />
+      <div class="preview-text">
+        <div class="title" id="qvTitle">QuickView Title</div>
+        <div>
+          <div>
+            <span class="preview-label">Strength:</span>
+            <span id="previewStrength">N/A</span>
+          </div>
+          <div>
+            <span class="preview-label">Impact:</span>
+            <span id="previewImpact">N/A</span>
+          </div>
+        </div>
+        <div class="desc" id="qvDesc" style="margin-bottom: 1rem;">
+          Short description here
+        </div>
+        <button class="btn-extended" id="expandBtn">Show More</button>
+      </div>
+    </div>
+
+    <!-- Detailed (Expanded) -->
+    <div class="detailed-content">
+      <button class="btn-back" id="backBtn">
+        <span class="arrow-icon">&lt;</span>
+        <span id="extendedTitle"></span>
+      </button>
+      <div class="card-top-row">
+        <div class="metrics-container">
+          <div class="metric-box">
+            <div class="metric-title">Signal Strength</div>
+            <div class="metric-value" id="cardStrength">N/A</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-title">Signal Impact</div>
+            <div class="metric-value" id="cardImpact">N/A</div>
+          </div>
+        </div>
+        <div class="card-image-wrapper">
+          <img src="" alt="Signal Image" id="cardImage" />
+          <span class="image-credit" id="cardImageCredit"></span>
+        </div>
+      </div>
+      <div class="section">
+        <h3 class="section-header">Description</h3>
+        <p id="cardDescription"></p>
+      </div>
+      <div class="section">
+        <h3 class="section-header">Reference / Story</h3>
+        <p id="cardReference"></p>
+      </div>
+      <div class="section" id="devSection">
+        <h3 class="section-header">Signal Development (12 months)</h3>
+        <p id="cardDevelopment"></p>
+      </div>
+      <div class="section">
+        <h3 class="section-header">Dubai Context</h3>
+        <p id="cardDubai"></p>
+      </div>
+      <div class="section">
+        <h3 class="section-header">Systems &amp; Policy Implication</h3>
+        <div
+          id="cardPolicyWrapper"
+          style="
+            max-height: 100px;
+            overflow: auto;
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 0.5rem;
+            border-radius: 4px;
+          "
+        >
+          <ul id="cardPolicy"></ul>
+        </div>
+      </div>
+      <div class="section">
+        <h3 class="section-header">Sources</h3>
+        <p id="cardSources"></p>
+      </div>
+      <div class="cta">
+        <button class="btn-extended" id="collapseBtn">Collapse</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-content">
+      <div class="footer-logo">
+        <img
+          src="https://mosaiclive.com/wp-content/uploads/42-ml__0017_Vector-Smart-Object.png"
+          alt="Mosaic Logo"
+        />
+      </div>
+      <div class="footer-title">Signal.Radar</div>
+    </div>
+  </footer>
+
+  <!-- Bootstrap Bundle JS -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-7QmEpZ0U1iNZ1kKPtdvervSVK9Bj2V4GrPuLHS3f07Hq5kBuTyrNEIzzyoZd8qBW"
+    crossorigin="anonymous"
+  ></script>
+  <script>
+    /******************************************************
+     * GLOBAL FILTER VARIABLES
+     ******************************************************/
+    let currentWeek = "1-7 March";
+    let activeCategory = "All";
+    let activeSubCategory = null;
+
+    /******************************************************
+     * CATEGORY BUBBLE GRADIENT MAP
+     ******************************************************/
+    const categoryBubbleGradientMap = {
+      "Digital Health": "var(--grad-digital-health)",
+      "Smart Cities":   "var(--grad-smart-cities)",
+      "Public Health":  "var(--grad-public-health)",
+      "Economic Development": "var(--grad-economic-dev)",
+      "Other":          "var(--grad-other)"
+    };
+
+    /******************************************************
+     * CATEGORY COLOR MAP (INCLUDES PLACEHOLDER)
+     ******************************************************/
+    const categoryColorMap = {
+      "Digital Health": "var(--color-digital-health)",
+      "Smart Cities":   "var(--color-smart-cities)",
+      "Public Health":  "var(--color-public-health)",
+      "Economic Development": "var(--color-economic-dev)",
+      "Other":          "var(--color-other)",
+      "Placeholder":    "var(--color-placeholder)"
+    };
+
+    /******************************************************
+     * SETUP CATEGORY BUBBLES => GRADIENTS
+     ******************************************************/
+    const categoryContainer = document.getElementById('categoryContainer');
+    const catButtons = categoryContainer.querySelectorAll('.category-bubble');
+    catButtons.forEach(btn => {
+      const cat = btn.dataset.category;
+      if (categoryBubbleGradientMap[cat]) {
+        btn.style.background = categoryBubbleGradientMap[cat];
+      }
+    });
+
+    /******************************************************
+     * TIMELINE (CIRCULAR NODES)
+     ******************************************************/
+    const radarContainer = document.getElementById('radarContainer');
+    const timelineNodes = document.querySelectorAll('.timeline-node');
+    timelineNodes.forEach(node => {
+      node.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Scroll the clicked node into center view
+        node.scrollIntoView({ behavior: "smooth", inline: "center" });
+
+        // Fade effect for week transition
+        radarContainer.classList.add('week-transition');
+        setTimeout(() => {
+          currentWeek = node.dataset.week;
+          timelineNodes.forEach(n => n.classList.remove('current-week'));
+          node.classList.add('current-week');
+          updateSignalsVisibility();
+        }, 300);
+        setTimeout(() => {
+          radarContainer.classList.remove('week-transition');
+        }, 600);
+      });
+    });
+
+    /******************************************************
+     * SIGNAL SETUP
+     ******************************************************/
+    const tooltip = document.getElementById('tooltip');
+    const signals = document.querySelectorAll('.signal');
+    signals.forEach(signal => {
+      // 1) Assign color by category
+      const cat = signal.dataset.category;
+      if (categoryColorMap[cat]) {
+        signal.style.backgroundColor = categoryColorMap[cat];
+      } else {
+        signal.style.backgroundColor = "var(--primary-color)";
+      }
+      // 2) Size by data-impact
+      const impact = (signal.getAttribute('data-impact') || '').toLowerCase();
+      let size;
+      if (impact === 'high') {
+        size = '2.9rem';
+      } else if (impact === 'medium') {
+        size = '2.2rem';
+      } else {
+        size = '1.5rem'; // default or "low"
+      }
+      signal.style.width = size;
+      signal.style.height = size;
+
+      // 3) Tooltip on hover
+      signal.addEventListener('mouseover', (e) => {
+        const title = signal.dataset.title || '';
+        tooltip.textContent = title;
+        tooltip.style.display = 'block';
+        tooltip.style.left = e.pageX + 10 + 'px';
+        tooltip.style.top = e.pageY - 10 + 'px';
+      });
+      signal.addEventListener('mouseout', () => {
+        tooltip.style.display = 'none';
+      });
+
+      // 4) Quick View on click
+      signal.addEventListener('click', (e) => {
+        e.stopPropagation();
+        populateQuickView(signal.dataset);
+        quickViewCard.style.display = 'block';
+        quickViewCard.classList.remove('expanded');
+      });
+    });
+
+    /******************************************************
+     * UPDATE SIGNALS VISIBILITY (by Week & Filters)
+     ******************************************************/
+    function updateSignalsVisibility() {
+      signals.forEach(sig => {
+        let visible = (sig.dataset.week === currentWeek);
+        if (activeSubCategory) {
+          visible = visible && (sig.dataset.subcategory === activeSubCategory);
+        } else if (activeCategory && activeCategory !== "All") {
+          visible = visible && (sig.dataset.category === activeCategory);
+        }
+        if (visible) {
+          sig.style.display = 'block';
+          setTimeout(() => {
+            sig.style.opacity = '1';
+            sig.style.pointerEvents = 'auto';
+          }, 50);
+        } else {
+          sig.style.opacity = '0';
+          sig.style.pointerEvents = 'none';
+          setTimeout(() => {
+            if (sig.style.opacity === '0') {
+              sig.style.display = 'none';
+            }
+          }, 500);
+        }
+      });
+    }
+
+    /******************************************************
+     * CATEGORY / SUBCATEGORY FILTERS
+     ******************************************************/
+    const subBubbles = document.querySelectorAll('.sub-bubble');
+    function showAllSignals() {
+      signals.forEach(sig => {
+        if (sig.dataset.week === currentWeek) {
+          sig.style.display = 'block';
+          sig.style.opacity = '1';
+          sig.style.pointerEvents = 'auto';
+        } else {
+          sig.style.display = 'none';
+        }
+      });
+      catButtons.forEach(b => b.classList.remove('active'));
+      activeCategory = "All";
+      activeSubCategory = null;
+    }
+    catButtons.forEach(bubble => {
+      bubble.addEventListener('click', (e) => {
+        e.stopPropagation();
+        activeSubCategory = null;
+        activeCategory = bubble.dataset.category;
+        catButtons.forEach(b => b.classList.remove('active'));
+        bubble.classList.add('active');
+        updateSignalsVisibility();
+      });
+    });
+    subBubbles.forEach(sub => {
+      sub.addEventListener('click', (e) => {
+        e.stopPropagation();
+        activeSubCategory = sub.dataset.subcategory;
+        updateSignalsVisibility();
+      });
+    });
+
+    /******************************************************
+     * QUICK VIEW CARD
+     ******************************************************/
+    const quickViewCard = document.getElementById('quickViewCard');
+    const qvCloseBtn = document.getElementById('qvCloseBtn');
+    const expandBtn = document.getElementById('expandBtn');
+    const collapseBtn = document.getElementById('collapseBtn');
+    const backBtn = document.getElementById('backBtn');
+    const extendedTitle = document.getElementById('extendedTitle');
+
+    qvCloseBtn.addEventListener('click', () => {
+      quickViewCard.style.display = 'none';
+    });
+    if (expandBtn) {
+      expandBtn.addEventListener('click', () => {
+        quickViewCard.classList.add('expanded');
+      });
+    }
+    if (collapseBtn) {
+      collapseBtn.addEventListener('click', () => {
+        quickViewCard.classList.remove('expanded');
+      });
+    }
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        quickViewCard.classList.remove('expanded');
+      });
+    }
+
+    function populateQuickView(data) {
+      document.getElementById('qvTitle').textContent = data.title || 'QuickView Title';
+      document.getElementById('previewStrength').textContent = data.strength || 'N/A';
+      document.getElementById('previewImpact').textContent = data.impact || 'N/A';
+
+      const shortDesc = (data.description || '').slice(0,120);
+      document.getElementById('qvDesc').textContent =
+        shortDesc + (data.description && data.description.length > 120 ? '...' : '');
+
+      const previewImg = document.getElementById('previewImg');
+      previewImg.src = data.image || '';
+      extendedTitle.textContent = data.title || 'Title';
+
+      document.getElementById('cardStrength').textContent = data.strength || 'N/A';
+      document.getElementById('cardImpact').textContent = data.impact || 'N/A';
+      document.getElementById('cardImage').src = data.image || '';
+      document.getElementById('cardImageCredit').textContent = data.imagecredit || '';
+      document.getElementById('cardDescription').textContent = data.description || '';
+      document.getElementById('cardReference').textContent = data.reference || '';
+      document.getElementById('cardDevelopment').textContent = data.dev || '';
+      document.getElementById('cardDubai').textContent = data.dubai || '';
+      document.getElementById('cardSources').textContent = data.sources || '';
+
+      const policyUl = document.getElementById('cardPolicy');
+      policyUl.innerHTML = '';
+      if (data.policy) {
+        data.policy.split('\n').forEach(line => {
+          const trimmed = line.trim();
+          if (trimmed) {
+            const li = document.createElement('li');
+            li.textContent = trimmed;
+            policyUl.appendChild(li);
+          }
+        });
+      }
+    }
+
+    /******************************************************
+     * LEGEND TOGGLE
+     ******************************************************/
+    const legendIcon = document.getElementById('legendIcon');
+    const legendPanel = document.getElementById('legendPanel');
+    legendIcon.addEventListener('mouseover', () => {
+      legendPanel.classList.add('show');
+    });
+    legendIcon.addEventListener('mouseout', () => {
+      legendPanel.classList.remove('show');
+    });
+    legendIcon.addEventListener('click', (e) => {
+      e.stopPropagation();
+      legendPanel.classList.toggle('show');
+    });
+    legendIcon.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      legendPanel.classList.toggle('show');
+    });
+
+    /******************************************************
+     * GLOBAL CLICK => close overlays
+     ******************************************************/
+    document.addEventListener('click', (e) => {
+      // Close QuickView if click outside
+      if (!quickViewCard.contains(e.target) && e.target !== quickViewCard) {
+        quickViewCard.style.display = 'none';
+      }
+      // Close legend if click outside
+      if (!legendIcon.contains(e.target) && !legendPanel.contains(e.target)) {
+        legendPanel.classList.remove('show');
+      }
+      // Close any sub-bubble-lists if click outside
+      document.querySelectorAll('.sub-bubble-list').forEach(list => {
+        if (!list.contains(e.target)) {
+          list.style.opacity = '0';
+          list.style.visibility = 'hidden';
+        }
+      });
+    });
+
+    // Initialize signals for currentWeek & filters
+    updateSignalsVisibility();
+  </script>
+</body>
+</html>
