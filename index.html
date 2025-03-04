@@ -788,7 +788,7 @@
   <!-- SIDE NAV (Hidden by default) -->
   <div class="side-nav" id="sideNav">
     <button class="side-nav-close-btn" onclick="toggleSideNav()" aria-label="Close Sidebar">×</button>
-    <h2>Sectors</h2>
+    <h2>sectors</h2>
     <div class="nav-section">
       <div class="nav-section-title">Security &amp; Justice</div>
       <ul>
@@ -1775,9 +1775,19 @@
 
     // Populate Quick View Card
     function populateQuickView(data) {
-      document.getElementById('qvTitle').textContent = data.title || 'QuickView Title';
-      document.getElementById('previewStrength').textContent = data.strength || 'N/A';
-      document.getElementById('previewImpact').textContent = data.impact || 'N/A';
+    document.getElementById('qvTitle').textContent = data.title || 'QuickView Title';
+    document.getElementById('previewStrength').textContent = data.strength || 'N/A';
+    document.getElementById('previewImpact').textContent = data.impact || 'N/A';
+
+    // Set development image (if available)
+    const devImage = document.getElementById('devImage');
+    if (data.dev) {
+        devImage.src = `${data.dev}`; // Ensure image is in the correct folder
+        devImage.style.display = 'block';
+    } else {
+        devImage.style.display = 'none';
+    }
+
 
       const shortDesc = (data.description || '').slice(0,120);
       document.getElementById('qvDesc').textContent =
@@ -1808,7 +1818,7 @@
 
       // For Development
       document.getElementById('cardDevelopment').textContent = data.dev || '';
-      document.getElementById('devImage').src = data.dev ? `images/${data.dev}` : '';
+      document.getElementById('devImage').src = data.dev ? `${data.dev}` : '';
 
       // For Dubai context
       document.getElementById('cardDubai').textContent = data.dubai || '';
