@@ -852,7 +852,7 @@
 
   <!-- SELECTED SEGMENT INDICATOR (Displays the side-nav selection) -->
   <div class="selected-segment" id="selectedSegment">
-    Currently selected segment: <span id="segmentName">None</span>
+    Currently selected segment: <span id="segmentName">LifeStyle Public Health</span>
   </div>
 
   <!-- TIMELINE (CIRCULAR NODES) -->
@@ -1869,11 +1869,13 @@
      ******************************************************/
     const segmentNameElem = document.getElementById('segmentName');
     function selectSegment(segment) {
-      segmentNameElem.textContent = segment;
-      // Optionally close the side nav after selection:
+    if (segment === "Lifestyle Public Health") {
+      document.getElementById("segmentName").textContent = segment;
       toggleSideNav();
-      // You can also do other logic here (e.g., filter signals) if desired
+    } else {
+      alert("Coming Soon");
     }
+  }
 
     // On initial load, show signals for the currentWeek + activeCategory
     updateSignalsVisibility();
